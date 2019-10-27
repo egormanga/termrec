@@ -1,0 +1,5 @@
+**.db
+**.log
+**.old
+**__pycache__
+**_config.py
