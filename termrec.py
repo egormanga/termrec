@@ -15,7 +15,7 @@ bases = bases.Bases()
 def rec(cargs):
 	""" Record a terminal session. """
 
-	if (os.getenv('TERMREC')): exit("You are trying to start a recording inside an existing record session! If this is what you want, unset TERMREC environment variable.")
+	if (os.getenv('TERMREC')): exit("You are trying to start a recording inside an existing record session! If this is what you really want, unset TERMREC environment variable.")
 
 	ofd = cargs.output.fileno()
 	speed, maxidle = 1/cargs.speed, cargs.maxidle
@@ -37,26 +37,26 @@ def rec(cargs):
 	finally: cargs.output.close()
 
 @apcmd(metavar='<action>')
-@aparg('file', help="Recording file", type=argparse.FileType('rb'))
+@aparg('file', help="Recording file path or url")
 @aparg('-s', '--speed', metavar='speed', help="Playback speed", default=1, type=float)
 @aparg('-i', '--maxidle', metavar='maxidle', help="Maximum idle time", default=inf, type=float)
 @aparg('--noclear', help="Do not clear terminal", action='store_true')
 def play(cargs):
 	""" Play recorded terminal session. """
 
-	if (os.getenv('TERMREC')): exit("You are trying to play a recording inside an record session! If this is what you want, unset TERMREC environment variable.")
+	if (os.getenv('TERMREC')): exit("You are trying to play a recording inside an record session! If this is what you really want, unset TERMREC environment variable.")
 
 	if (not cargs.noclear): clear()
 
-	fd = cargs.file.fileno()
+	f = requests.get(cargs.file, stream=True).raw if (cargs.file.startswith('http')) else open(cargs.file, 'rb')
 	speed, maxidle = 1/cargs.speed, cargs.maxidle
 
 	while (True):
-		c = os.read(fd, 1)
+		c = f.read(1)
 		if (c == b'\0'):
 			b = bytearray()
 			while (True):
-				c = os.read(fd, 1)
+				c = f.read(1)
 				if (not c or c == b'\0'): break
 				b += c
 			if (b): time.sleep(min(bases.fromAlphabet(b.decode('ascii'), npchars)*speed/1000, maxidle)); continue
@@ -88,7 +88,6 @@ def rewrite(cargs):
 			if (not c): break
 			os.write(ofd, c)
 	finally: cargs.outfile.close()
-
 
 @apmain
 def main(cargs):
